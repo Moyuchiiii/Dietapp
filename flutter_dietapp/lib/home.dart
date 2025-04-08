@@ -3,6 +3,8 @@ import 'input_screen.dart';
 import 'calendar_screen.dart';
 import 'graph_screen.dart';
 import 'options_screen.dart';
+import 'firt.dart';
+import 'database_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +22,24 @@ class _HomeScreenState extends State<HomeScreen> {
     const GraphScreen(),
     const OptionsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserData();
+  }
+
+  Future<void> _checkUserData() async {
+    final dbHelper = DatabaseHelper();
+    final hasData = await dbHelper.hasUserData();
+    
+    if (!hasData && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const InitialSetupScreen()),
+      );
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() {
