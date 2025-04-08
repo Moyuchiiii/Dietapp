@@ -190,4 +190,10 @@ class DatabaseHelper {
       }
     }).toList();
   }
+
+  Future<bool> hasUserData() async {
+    final db = await database;
+    final result = await db.query('user_data');
+    return result.isNotEmpty;
+  }
 }

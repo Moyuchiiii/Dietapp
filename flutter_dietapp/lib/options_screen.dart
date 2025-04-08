@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'data_list_screen.dart';
 import 'database_helper.dart';
+import 'firt.dart';
 
 class OptionsScreen extends StatelessWidget {
   const OptionsScreen({super.key});
@@ -42,6 +43,17 @@ class OptionsScreen extends StatelessWidget {
             content: Text('すべてのデータを削除しました'),
           ),
         );
+
+        // ユーザーデータの存在確認
+        if (await dbHelper.hasUserData() == false) {
+          // ユーザーデータが存在しない場合のみ初期設定画面に遷移
+          if (context.mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const InitialSetupScreen()),
+            );
+          }
+        }
       }
     }
   }
