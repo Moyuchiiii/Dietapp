@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'database_helper.dart';
+import 'input_screen.dart'; // 記録画面をインポート
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -33,6 +34,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  void _openInputScreenForDate(DateTime date) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InputScreen(),
+        settings: RouteSettings(arguments: date), // 日付を渡す
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,6 +65,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   _selectedDay = selectedDay;
                   _focusedDay = focusedDay;
                 });
+              },
+              onDayLongPressed: (selectedDay, focusedDay) {
+                _openInputScreenForDate(selectedDay); // 長押しで記録画面を開く
               },
               headerStyle: HeaderStyle(
                 formatButtonVisible: false,
