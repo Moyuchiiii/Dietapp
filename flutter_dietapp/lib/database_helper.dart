@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:developer'; // ログ記録用のパッケージをインポート
+import 'package:intl/intl.dart'; // 日付フォーマット用のパッケージをインポート
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -108,11 +109,16 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>?> getDailyRecordByDate(String date) async {
     final db = await database;
-    final result = await db.query(
-      'daily_records',
-      where: 'date = ?',
-      whereArgs: [date],
-    );
+    final result = await db.rawQuery('''
+      SELECT dr.*
+      FROM daily_records dr
+      INNER JOIN (
+        SELECT date, MAX(id) as max_id
+        FROM daily_records
+        WHERE date = ?
+        GROUP BY date
+      ) latest ON dr.date = latest.date AND dr.id = latest.max_id
+    ''', [date]);
     return result.isNotEmpty ? result.first : null;
   }
 
@@ -151,5 +157,37 @@ class DatabaseHelper {
 
     log(logMessage); // print の代わりに log を使用
     return await db.insert('daily_records_log', logData);
+  }
+
+  Future<List<Map<String, dynamic>>> getGraphData() async {
+    final db = await database;
+    
+    // 各日付の最新のレコードのみを取得する（サブクエリを使用）
+    final results = await db.rawQuery('''
+      SELECT dr.*
+      FROM daily_records dr
+      INNER JOIN (
+        SELECT date, MAX(id) as max_id
+        FROM daily_records
+        WHERE weight IS NOT NULL OR body_fat IS NOT NULL
+        GROUP BY date
+      ) latest ON dr.date = latest.date AND dr.id = latest.max_id
+      ORDER BY date ASC
+    ''');
+
+    // 日付形式の標準化
+    return results.map((record) {
+      final dateStr = record['date'] as String;
+      try {
+        // 日付形式を検証し、必要に応じて変換
+        final date = DateTime.parse(dateStr.replaceAll('/', '-'));
+        return {
+          ...record,
+          'date': DateFormat('yyyy/MM/dd').format(date),
+        };
+      } catch (e) {
+        return record;
+      }
+    }).toList();
   }
 }

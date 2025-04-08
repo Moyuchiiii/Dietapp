@@ -42,6 +42,7 @@ dependencies:
   path: ^1.8.3
   intl: ^0.20.2
   table_calendar: ^3.0.8
+  fl_chart: ^0.66.2
 
 dev_dependencies:
   flutter_test:
