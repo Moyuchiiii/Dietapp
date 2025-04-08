@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart';
+import 'dart:math';
 
 class GraphScreen extends StatefulWidget {
   const GraphScreen({super.key});
@@ -16,6 +17,8 @@ class _GraphScreenState extends State<GraphScreen> {
   List<String> dates = [];
   double minY = 0;
   double maxY = 0;
+  double minX = 0;
+  double maxX = 0;
   bool showWeight = true;
   bool showBodyFat = true;
 
@@ -42,29 +45,38 @@ class _GraphScreenState extends State<GraphScreen> {
     final dateMap = <String, Map<String, dynamic>>{};
     for (var record in data) {
       final date = record['date'] as String;
-      // 同じ日付のデータが既にある場合は、IDが大きい（より新しい）データで上書き
       if (!dateMap.containsKey(date) || 
           (record['id'] as int) > (dateMap[date]!['id'] as int)) {
         dateMap[date] = record;
       }
     }
 
-    // ソートされた日付のリストを作成
+    // 最も古い日付と最も新しい日付を取得
     final sortedDates = dateMap.keys.toList()..sort();
+    final firstDate = DateFormat('yyyy/MM/dd').parse(sortedDates.first);
+    final lastDate = DateFormat('yyyy/MM/dd').parse(sortedDates.last);
+
+    // 日付の範囲内のすべての日付を生成
+    final allDates = List.generate(
+      lastDate.difference(firstDate).inDays + 1,
+      (index) => DateFormat('yyyy/MM/dd').format(
+        firstDate.add(Duration(days: index)),
+      ),
+    );
+
     final weightData = <FlSpot>[];
     final bodyFatData = <FlSpot>[];
-    final datesList = <String>[];
     double minValue = double.infinity;
     double maxValue = double.negativeInfinity;
 
-    for (int i = 0; i < sortedDates.length; i++) {
-      final date = sortedDates[i];
-      final record = dateMap[date]!;
-      final weight = record['weight'] as double?;
-      final bodyFat = record['body_fat'] as double?;
-
-      if (weight != null || bodyFat != null) {
-        datesList.add(date);
+    // すべての日付に対してデータを処理
+    for (int i = 0; i < allDates.length; i++) {
+      final date = allDates[i];
+      final record = dateMap[date];
+      
+      if (record != null) {
+        final weight = record['weight'] as double?;
+        final bodyFat = record['body_fat'] as double?;
 
         if (weight != null) {
           weightData.add(FlSpot(i.toDouble(), weight));
@@ -83,9 +95,11 @@ class _GraphScreenState extends State<GraphScreen> {
     setState(() {
       weightSpots = weightData;
       bodyFatSpots = bodyFatData;
-      dates = datesList;
+      dates = allDates;
       minY = minValue;
       maxY = maxValue;
+      minX = 0;
+      maxX = (dates.length - 1).toDouble();
     });
   }
 
@@ -104,8 +118,8 @@ class _GraphScreenState extends State<GraphScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final interval = dates.isEmpty ? 1.0 : 
-                    (dates.length <= 5 ? 1.0 : (dates.length / 5).ceil().toDouble());
+    // 毎日表示するためにintervalを1.0に固定
+    const interval = 1.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -148,147 +162,156 @@ class _GraphScreenState extends State<GraphScreen> {
             )
           else
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: LineChart(
-                  LineChartData(
-                    lineBarsData: [
-                      if (showWeight)
-                        LineChartBarData(
-                          spots: weightSpots,
-                          isCurved: false,
-                          color: Colors.blue,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) =>
-                              FlDotCirclePainter(
-                                radius: 4,
-                                color: Colors.blue,
-                                strokeWidth: 1,
-                                strokeColor: Colors.white,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: max(MediaQuery.of(context).size.width, dates.length * 65.0), // 1日あたりのスペースを増やす
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: LineChart(
+                      LineChartData(
+                        lineBarsData: [
+                          if (showWeight)
+                            LineChartBarData(
+                              spots: weightSpots,
+                              isCurved: false,
+                              color: Colors.blue,
+                              dotData: FlDotData(
+                                show: true,
+                                getDotPainter: (spot, percent, barData, index) =>
+                                  FlDotCirclePainter(
+                                    radius: 4,
+                                    color: Colors.blue,
+                                    strokeWidth: 1,
+                                    strokeColor: Colors.white,
+                                  ),
                               ),
-                          ),
-                          barWidth: 2,
-                        ),
-                      if (showBodyFat)
-                        LineChartBarData(
-                          spots: bodyFatSpots,
-                          isCurved: false,
-                          color: Colors.red,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) =>
-                              FlDotCirclePainter(
-                                radius: 4,
-                                color: Colors.red,
-                                strokeWidth: 1,
-                                strokeColor: Colors.white,
+                              barWidth: 2,
+                            ),
+                          if (showBodyFat)
+                            LineChartBarData(
+                              spots: bodyFatSpots,
+                              isCurved: false,
+                              color: Colors.red,
+                              dotData: FlDotData(
+                                show: true,
+                                getDotPainter: (spot, percent, barData, index) =>
+                                  FlDotCirclePainter(
+                                    radius: 4,
+                                    color: Colors.red,
+                                    strokeWidth: 1,
+                                    strokeColor: Colors.white,
+                                  ),
                               ),
+                              barWidth: 2,
+                            ),
+                        ],
+                        minX: minX,
+                        maxX: maxX,
+                        minY: minY * 0.95,
+                        maxY: maxY * 1.05,
+                        clipData: FlClipData.none(),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 45,
+                              getTitlesWidget: (value, meta) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Text(
+                                    value.toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                          barWidth: 2,
-                        ),
-                    ],
-                    minY: minY * 0.95,
-                    maxY: maxY * 1.05,
-                    titlesData: FlTitlesData(
-                      show: true,
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 45,
-                          getTitlesWidget: (value, meta) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
+                          bottomTitles: AxisTitles(
+                            axisNameWidget: const Padding(
+                              padding: EdgeInsets.only(top: 45),  // パディングを増やす
                               child: Text(
-                                value.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 10,
+                                '日付',
+                                style: TextStyle(
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        axisNameWidget: const Padding(
-                          padding: EdgeInsets.only(top: 20),
-                          child: Text(
-                            '日付',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            ),
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: interval,
+                              reservedSize: 90,  // 日付ラベルのスペースをさらに広げる
+                              getTitlesWidget: (value, meta) {
+                                final index = value.toInt();
+                                if (index >= 0 && index < dates.length) {
+                                  return Container(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      _getDateLabel(index),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
                             ),
                           ),
+                          rightTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                         ),
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          interval: interval,
-                          reservedSize: 60,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index >= 0 && index < dates.length) {
-                              return Transform.rotate(
-                                angle: -0.5,
-                                child: Text(
-                                  _getDateLabel(index),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: true,
+                          horizontalInterval: (maxY - minY) / 10,
+                          verticalInterval: 1,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: Colors.grey.withOpacity(0.3),
+                              strokeWidth: 1,
+                            );
+                          },
+                          getDrawingVerticalLine: (value) {
+                            return FlLine(
+                              color: Colors.grey.withOpacity(0.3),
+                              strokeWidth: 1,
+                            );
                           },
                         ),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                    ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: true,
-                      horizontalInterval: (maxY - minY) / 10,
-                      verticalInterval: 1,
-                      getDrawingHorizontalLine: (value) {
-                        return FlLine(
-                          color: Colors.grey.withOpacity(0.3),
-                          strokeWidth: 1,
-                        );
-                      },
-                      getDrawingVerticalLine: (value) {
-                        return FlLine(
-                          color: Colors.grey.withOpacity(0.3),
-                          strokeWidth: 1,
-                        );
-                      },
-                    ),
-                    borderData: FlBorderData(
-                      show: true,
-                      border: Border.all(
-                        color: Colors.grey.withOpacity(0.5),
-                      ),
-                    ),
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
-                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                          return touchedSpots.map((LineBarSpot spot) {
-                            final isWeight = spot.barIndex == 0;
-                            return LineTooltipItem(
-                              '${_getDateLabel(spot.x.toInt())}\n${isWeight ? "体重" : "体脂肪率"}: ${spot.y.toStringAsFixed(1)}${isWeight ? "kg" : "%"}',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          }).toList();
-                        },
+                        borderData: FlBorderData(
+                          show: true,
+                          border: Border.all(
+                            color: Colors.grey.withOpacity(0.5),
+                          ),
+                        ),
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
+                            getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                              return touchedSpots.map((LineBarSpot spot) {
+                                final isWeight = spot.barIndex == 0;
+                                return LineTooltipItem(
+                                  '${_getDateLabel(spot.x.toInt())}\n${isWeight ? "体重" : "体脂肪率"}: ${spot.y.toStringAsFixed(1)}${isWeight ? "kg" : "%"}',
+                                  const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ),
