@@ -25,16 +25,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final db = await dbHelper.database;
     final records = await db.query('daily_records');
 
-    debugPrint('Database records: $records');
-
     setState(() {
       _weightData = {
         for (var record in records)
           record['date'] as String: record['weight'].toString()
       };
     });
-
-    debugPrint('Loaded weight data: $_weightData');
   }
 
   @override
@@ -43,166 +39,153 @@ class _CalendarScreenState extends State<CalendarScreen> {
       appBar: AppBar(
         title: const Text('カレンダー画面'),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final calendarHeight = constraints.maxHeight * 0.8;
-          return Column(
-            children: [
-              SizedBox(
-                height: calendarHeight,
-                child: TableCalendar(
-                  firstDay: DateTime(2000),
-                  lastDay: DateTime(2100),
-                  focusedDay: _focusedDay,
-                  calendarFormat: CalendarFormat.month,
-                  rowHeight: calendarHeight / 7,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  // 枠線を細く見せたい場合は cellMargin を小さめにするか zero にする
-                  calendarStyle: CalendarStyle(
-                    cellMargin: const EdgeInsets.all(2.0),
-                    defaultDecoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6.0),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            TableCalendar(
+              firstDay: DateTime(2000),
+              lastDay: DateTime(2100),
+              focusedDay: _focusedDay,
+              calendarFormat: CalendarFormat.month,
+              rowHeight: 90.0,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextFormatter: (date, locale) =>
+                    '${date.year}年${date.month}月',
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekendStyle: const TextStyle(color: Colors.red),
+                weekdayStyle: const TextStyle(color: Colors.black),
+                dowTextFormatter: (date, locale) {
+                  const days = ['日', '月', '火', '水', '木', '金', '土'];
+                  return days[date.weekday % 7];
+                },
+              ),
+              calendarStyle: CalendarStyle(
+                cellMargin: EdgeInsets.zero,
+                defaultDecoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey, width: 0.5),
+                ),
+                todayDecoration: BoxDecoration(
+                  color: Colors.lightBlueAccent.withOpacity(0.5),
+                  border: Border.all(color: Colors.blue, width: 1.0),
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.deepPurpleAccent.withOpacity(0.5),
+                  border: Border.all(color: Colors.deepPurple, width: 1.0),
+                ),
+                outsideDecoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey, width: 0.5),
+                ),
+                defaultTextStyle:
+                    const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, day, focusedDay) {
+                  final formattedDate =
+                      '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+                  final weight = _weightData[formattedDate];
+                  return Container(
+                    alignment: Alignment.topCenter,
+                    padding: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey, width: 0.5),
                     ),
-                    todayDecoration: BoxDecoration(
-                      color: Colors.lightBlueAccent.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(6.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(day.day.toString(), style: const TextStyle(fontSize: 16)),
+                        if (weight != null)
+                          Text(
+                            '$weight kg',
+                            style: const TextStyle(fontSize: 12, color: Colors.black),
+                          ),
+                      ],
                     ),
-                    selectedDecoration: BoxDecoration(
+                  );
+                },
+                todayBuilder: (context, day, focusedDay) {
+                  final formattedDate =
+                      '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+                  final weight = _weightData[formattedDate];
+                  return Container(
+                    alignment: Alignment.topCenter,
+                    padding: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey, width: 0.5),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          day.day.toString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (weight != null)
+                          Text(
+                            '$weight kg',
+                            style: const TextStyle(fontSize: 12, color: Colors.black),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+                selectedBuilder: (context, day, focusedDay) {
+                  final formattedDate =
+                      '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+                  final weight = _weightData[formattedDate];
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    alignment: Alignment.topCenter,
+                    padding: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
                       color: Colors.deepPurpleAccent.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(6.0),
+                      border: Border.all(color: Colors.deepPurple, width: 1.0),
                     ),
-                    defaultTextStyle:
-                        const TextStyle(fontSize: 14, color: Colors.black87),
-                  ),
-                  calendarBuilders: CalendarBuilders(
-                    // 通常日
-                    defaultBuilder: (context, day, focusedDay) {
-                      final formattedDate =
-                          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-                      final weight = _weightData[formattedDate];
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: EdgeInsets.zero,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 2.0,
-                          horizontal: 2.0,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          day.day.toString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          // 枠線を細くする場合は width を小さめにする
-                          border: Border.all(color: Colors.green[600]!, width: 0.5),
-                          borderRadius: BorderRadius.circular(6.0),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(day.day.toString(), style: const TextStyle(fontSize: 16)),
-                            if (weight != null)
-                              Text(
-                                '$weight kg',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                    // 今日
-                    todayBuilder: (context, day, focusedDay) {
-                      final formattedDate =
-                          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-                      final weight = _weightData[formattedDate];
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: EdgeInsets.zero,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 2.0,
-                          horizontal: 2.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.lightBlueAccent.withOpacity(0.5),
-                          // 枠線を細くする場合は width を小さめにする
-                          border: Border.all(color: Colors.green[600]!, width: 0.5),
-                          borderRadius: BorderRadius.circular(6.0),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              day.day.toString(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                            if (weight != null)
-                              Text(
-                                '$weight kg',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                    // 選択日
-                    selectedBuilder: (context, day, focusedDay) {
-                      final formattedDate =
-                          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-                      final weight = _weightData[formattedDate];
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: EdgeInsets.zero,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 2.0,
-                          horizontal: 2.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurpleAccent.withOpacity(0.5),
-                          // 選択日の枠線も細めにする (1.0 など)
-                          border: Border.all(color: Colors.red[800]!, width: 1.0),
-                          borderRadius: BorderRadius.circular(6.0),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              day.day.toString(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
-                            ),
-                            if (weight != null)
-                              Text(
-                                '$weight kg',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                        if (weight != null)
+                          Text(
+                            '$weight kg',
+                            style: const TextStyle(fontSize: 12, color: Colors.black),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    _selectedDay != null
-                        ? '選択した日の体重: ${_weightData['${_selectedDay!.year.toString().padLeft(4, '0')}-${_selectedDay!.month.toString().padLeft(2, '0')}-${_selectedDay!.day.toString().padLeft(2, '0')}'] ?? 'データなし'} kg'
-                        : '日付を選択してください',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                _selectedDay != null
+                    ? '選択した日の体重: ${_weightData['${_selectedDay!.year.toString().padLeft(4, '0')}-${_selectedDay!.month.toString().padLeft(2, '0')}-${_selectedDay!.day.toString().padLeft(2, '0')}'] ?? 'データなし'} kg'
+                    : '日付を選択してください',
+                style: const TextStyle(fontSize: 18),
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }
