@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // バージョンを2から3に更新
+      version: 5, // バージョンを4から5に更新
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE user_data (
@@ -52,6 +52,13 @@ class DatabaseHelper {
             memo TEXT,
             date TEXT,
             updated_at TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE daily_stamps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT UNIQUE,
+            stamp TEXT
           )
         ''');
       },
@@ -88,6 +95,20 @@ class DatabaseHelper {
               memo TEXT,
               date TEXT,
               updated_at TEXT
+            )
+          ''');
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            ALTER TABLE daily_records ADD COLUMN stamp TEXT
+          ''');
+        }
+        if (oldVersion < 5) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS daily_stamps (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              date TEXT UNIQUE,
+              stamp TEXT
             )
           ''');
         }

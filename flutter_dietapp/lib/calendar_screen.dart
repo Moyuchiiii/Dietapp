@@ -14,11 +14,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<String, String> _weightData = {};
+  Map<String, String> _stampData = {}; // スタンプデータを保持するマップ
 
   @override
   void initState() {
     super.initState();
     _loadWeightData();
+    _loadStampData(); // スタンプデータを読み込む
   }
 
   Future<void> _loadWeightData() async {
@@ -30,6 +32,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _weightData = {
         for (var record in records)
           record['date'] as String: record['weight'].toString()
+      };
+    });
+  }
+
+  Future<void> _loadStampData() async {
+    final dbHelper = DatabaseHelper();
+    final db = await dbHelper.database;
+    final records = await db.query('daily_stamps'); // スタンプデータを取得するテーブル
+
+    setState(() {
+      _stampData = {
+        for (var record in records)
+          record['date'] as String: record['stamp'].toString()
       };
     });
   }
@@ -107,6 +122,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   final formattedDate =
                       '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                   final weight = _weightData[formattedDate];
+                  final stamp = _stampData[formattedDate]; // スタンプデータを取得
                   return Container(
                     alignment: Alignment.topCenter,
                     padding: const EdgeInsets.all(4.0),
@@ -114,9 +130,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       border: Border.all(color: Colors.grey, width: 0.5),
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Text(day.day.toString(), style: const TextStyle(fontSize: 16)),
+                        if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
                         if (weight != null)
                           Text(
                             '$weight kg',
@@ -130,6 +147,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   final formattedDate =
                       '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                   final weight = _weightData[formattedDate];
+                  final stamp = _stampData[formattedDate]; // スタンプデータを取得
                   return Container(
                     alignment: Alignment.topCenter,
                     padding: const EdgeInsets.all(4.0),
@@ -146,6 +164,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
                         if (weight != null)
                           Text(
                             '$weight kg',
@@ -159,6 +178,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   final formattedDate =
                       '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                   final weight = _weightData[formattedDate];
+                  final stamp = _stampData[formattedDate]; // スタンプデータを取得
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     alignment: Alignment.topCenter,
@@ -168,7 +188,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       border: Border.all(color: Colors.deepPurple, width: 1.0),
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Text(
                           day.day.toString(),
@@ -178,6 +198,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             color: Colors.deepPurple,
                           ),
                         ),
+                        if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
                         if (weight != null)
                           Text(
                             '$weight kg',
