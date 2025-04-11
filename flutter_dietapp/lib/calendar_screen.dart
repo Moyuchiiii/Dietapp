@@ -19,8 +19,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _loadWeightData();
-    _loadStampData(); // スタンプデータを読み込む
+    _loadWeightData(); // スタンプデータは_loadWeightDataで一緒に取得するため_loadStampData()は削除
   }
 
   Future<void> _loadWeightData() async {
@@ -33,18 +32,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         for (var record in records)
           record['date'] as String: record['weight'].toString()
       };
-    });
-  }
-
-  Future<void> _loadStampData() async {
-    final dbHelper = DatabaseHelper();
-    final db = await dbHelper.database;
-    final records = await db.query('daily_stamps'); // スタンプデータを取得するテーブル
-
-    setState(() {
       _stampData = {
         for (var record in records)
-          record['date'] as String: record['stamp'].toString()
+          record['date'] as String: record['stamp']?.toString() ?? ''
       };
     });
   }

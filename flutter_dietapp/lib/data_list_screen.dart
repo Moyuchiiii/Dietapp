@@ -98,6 +98,7 @@ class _DataListScreenState extends State<DataListScreen> {
             subtitle: Text(
               '変更した日: ${log['date']}\n'
               '体重: ${log['weight']}kg 体脂肪率: ${log['body_fat']}%\n'
+              'スタンプ: ${log['stamp'] ?? 'なし'}\n'
               'メモ: ${log['memo']}',
             ),
           );

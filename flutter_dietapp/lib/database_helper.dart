@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5, // バージョンを4から5に更新
+      version: 6, // バージョンを5から6に更新
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE user_data (
@@ -40,7 +40,8 @@ class DatabaseHelper {
             weight REAL,
             body_fat REAL,
             memo TEXT,
-            date TEXT
+            date TEXT,
+            stamp TEXT
           )
         ''');
         await db.execute('''
@@ -51,7 +52,8 @@ class DatabaseHelper {
             body_fat REAL,
             memo TEXT,
             date TEXT,
-            updated_at TEXT
+            updated_at TEXT,
+            stamp TEXT
           )
         ''');
         await db.execute('''
@@ -103,13 +105,9 @@ class DatabaseHelper {
             ALTER TABLE daily_records ADD COLUMN stamp TEXT
           ''');
         }
-        if (oldVersion < 5) {
+        if (oldVersion < 6) {
           await db.execute('''
-            CREATE TABLE IF NOT EXISTS daily_stamps (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              date TEXT UNIQUE,
-              stamp TEXT
-            )
+            ALTER TABLE daily_records_log ADD COLUMN stamp TEXT
           ''');
         }
       },
@@ -173,6 +171,7 @@ class DatabaseHelper {
       'body_fat': data['body_fat'],
       'memo': data['memo'],
       'date': data['date'],
+      'stamp': data['stamp'], // スタンプ情報もログに追加
       'updated_at': formattedCurrentTime,
     };
 
