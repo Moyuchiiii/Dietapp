@@ -15,6 +15,8 @@ class _InputScreenState extends State<InputScreen> {
   final TextEditingController _memoController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   int? _recordId; // 既存データのIDを保持
+  final List<String> _stamps = ['😊', '😢', '🍚', '🍺', '🚻', '🏃', '⭐'];
+  String? _selectedStamp; // 選択されたスタンプ
 
   @override
   void initState() {
@@ -63,6 +65,7 @@ class _InputScreenState extends State<InputScreen> {
         _weightController.text = records['weight'].toString(); // 体重を入力
         _bodyFatController.text = records['body_fat'].toString(); // 体脂肪率を入力
         _memoController.text = records['memo'] ?? ''; // メモを入力
+        _selectedStamp = records['stamp']; // スタンプを入力
       });
     } else {
       if (!mounted) return;
@@ -71,6 +74,7 @@ class _InputScreenState extends State<InputScreen> {
         _weightController.clear(); // 体重フィールドをクリア
         _bodyFatController.clear(); // 体脂肪率フィールドをクリア
         _memoController.clear(); // メモフィールドをクリア
+        _selectedStamp = null; // スタンプをリセット
       });
     }
   }
@@ -89,6 +93,7 @@ class _InputScreenState extends State<InputScreen> {
           'body_fat': bodyFat,
           'memo': memo,
           'date': formattedDate, // フォーマット済みの日付を使用
+          'stamp': _selectedStamp, // スタンプを保存
         };
 
         if (_recordId == null) {
@@ -127,71 +132,89 @@ class _InputScreenState extends State<InputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('記録確認'),
+        title: const Text('記録入力'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('日付', style: TextStyle(fontSize: 16)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => _changeDate(-1),
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                GestureDetector(
-                  onTap: _selectDate, // タップでカレンダーを開く
-                  child: Text(
-                    '${_selectedDate.year} ${_selectedDate.month}.${_selectedDate.day} (${['月', '火', '水', '木', '金', '土', '日'][_selectedDate.weekday - 1]})',
-                    style: const TextStyle(fontSize: 16),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('日付', style: TextStyle(fontSize: 16)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => _changeDate(-1),
+                    icon: const Icon(Icons.chevron_left),
                   ),
+                  GestureDetector(
+                    onTap: _selectDate, // タップでカレンダーを開く
+                    child: Text(
+                      '${_selectedDate.year} ${_selectedDate.month}.${_selectedDate.day} (${['月', '火', '水', '木', '金', '土', '日'][_selectedDate.weekday - 1]})',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _changeDate(1),
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text('体重 (kg)', style: TextStyle(fontSize: 16)),
+              TextField(
+                controller: _weightController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '例: 60.5',
                 ),
-                IconButton(
-                  onPressed: () => _changeDate(1),
-                  icon: const Icon(Icons.chevron_right),
+              ),
+              const SizedBox(height: 16),
+              const Text('体脂肪率 (%)', style: TextStyle(fontSize: 16)),
+              TextField(
+                controller: _bodyFatController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '例: 20.5',
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text('体重 (kg)', style: TextStyle(fontSize: 16)),
-            TextField(
-              controller: _weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '例: 60.5',
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('体脂肪率 (%)', style: TextStyle(fontSize: 16)),
-            TextField(
-              controller: _bodyFatController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '例: 20.5',
+              const SizedBox(height: 16),
+              const Text('メモ', style: TextStyle(fontSize: 16)),
+              TextField(
+                controller: _memoController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '例: 運動内容や食事内容など',
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('メモ', style: TextStyle(fontSize: 16)),
-            TextField(
-              controller: _memoController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '例: 運動内容や食事内容など',
+              const SizedBox(height: 16),
+              const Text('スタンプを選択:', style: TextStyle(fontSize: 16)),
+              Wrap(
+                spacing: 8.0,
+                children: _stamps.map((stamp) {
+                  return ChoiceChip(
+                    label: Text(stamp),
+                    selected: _selectedStamp == stamp,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedStamp = selected ? stamp : null;
+                      });
+                    },
+                  );
+                }).toList(),
               ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ElevatedButton(
-                onPressed: _saveRecord,
-                child: const Text('保存'),
+              const SizedBox(height: 16),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _saveRecord,
+                  child: const Text('保存'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

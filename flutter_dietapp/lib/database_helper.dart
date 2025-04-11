@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // バージョンを2から3に更新
+      version: 6, // バージョンを5から6に更新
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE user_data (
@@ -40,7 +40,8 @@ class DatabaseHelper {
             weight REAL,
             body_fat REAL,
             memo TEXT,
-            date TEXT
+            date TEXT,
+            stamp TEXT
           )
         ''');
         await db.execute('''
@@ -51,7 +52,15 @@ class DatabaseHelper {
             body_fat REAL,
             memo TEXT,
             date TEXT,
-            updated_at TEXT
+            updated_at TEXT,
+            stamp TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE daily_stamps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT UNIQUE,
+            stamp TEXT
           )
         ''');
       },
@@ -91,6 +100,16 @@ class DatabaseHelper {
             )
           ''');
         }
+        if (oldVersion < 4) {
+          await db.execute('''
+            ALTER TABLE daily_records ADD COLUMN stamp TEXT
+          ''');
+        }
+        if (oldVersion < 6) {
+          await db.execute('''
+            ALTER TABLE daily_records_log ADD COLUMN stamp TEXT
+          ''');
+        }
       },
     );
   }
@@ -105,6 +124,12 @@ class DatabaseHelper {
     final recordId = await db.insert('daily_records', data);
     await logDailyRecordUpdate(recordId, data); // 新しい記録をログに記録
     return recordId;
+  }
+
+  Future<Map<String, dynamic>?> getUserData() async {
+    final db = await database;
+    final results = await db.query('user_data');
+    return results.isNotEmpty ? results.first : null;
   }
 
   Future<Map<String, dynamic>?> getDailyRecordByDate(String date) async {
@@ -152,6 +177,7 @@ class DatabaseHelper {
       'body_fat': data['body_fat'],
       'memo': data['memo'],
       'date': data['date'],
+      'stamp': data['stamp'], // スタンプ情報もログに追加
       'updated_at': formattedCurrentTime,
     };
 
