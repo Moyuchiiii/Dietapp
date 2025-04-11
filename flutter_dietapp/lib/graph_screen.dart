@@ -278,13 +278,13 @@ class _GraphScreenState extends State<GraphScreen> {
                           verticalInterval: 1,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
-                              color: Colors.grey.withOpacity(0.3),
+                              color: Color.fromRGBO(128, 128, 128, 0.3),
                               strokeWidth: 1,
                             );
                           },
                           getDrawingVerticalLine: (value) {
                             return FlLine(
-                              color: Colors.grey.withOpacity(0.3),
+                              color: Color.fromRGBO(128, 128, 128, 0.3),
                               strokeWidth: 1,
                             );
                           },
@@ -292,12 +292,12 @@ class _GraphScreenState extends State<GraphScreen> {
                         borderData: FlBorderData(
                           show: true,
                           border: Border.all(
-                            color: Colors.grey.withOpacity(0.5),
+                            color: Color.fromRGBO(128, 128, 128, 0.5),
                           ),
                         ),
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
-                            tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
+                            tooltipBgColor: Color.fromRGBO(96, 125, 139, 0.8),
                             getTooltipItems: (List<LineBarSpot> touchedSpots) {
                               return touchedSpots.map((LineBarSpot spot) {
                                 final isWeight = spot.barIndex == 0;

@@ -177,11 +177,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     border: Border.all(color: Colors.grey, width: 0.5),
                   ),
                   todayDecoration: BoxDecoration(
-                    color: Colors.lightBlueAccent.withOpacity(0.5),
+                    color: Colors.lightBlueAccent.withAlpha(128),
                     border: Border.all(color: Colors.blue, width: 1.0),
                   ),
                   selectedDecoration: BoxDecoration(
-                    color: Colors.deepPurpleAccent.withOpacity(0.5),
+                    color: Colors.deepPurpleAccent.withAlpha(128),
                     border: Border.all(color: Colors.deepPurple, width: 1.0),
                   ),
                   outsideDecoration: BoxDecoration(
@@ -257,7 +257,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       alignment: Alignment.topCenter,
                       padding: const EdgeInsets.all(4.0),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurpleAccent.withOpacity(0.5),
+                        color: Colors.deepPurpleAccent.withAlpha(128),
                         border: Border.all(color: Colors.deepPurple, width: 1.0),
                       ),
                       child: Column(
