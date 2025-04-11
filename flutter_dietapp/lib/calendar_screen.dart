@@ -15,11 +15,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDay;
   Map<String, String> _weightData = {};
   Map<String, String> _stampData = {}; // スタンプデータを保持するマップ
+  double? _userHeight; // ユーザーの身長を保持する変数を追加
 
   @override
   void initState() {
     super.initState();
     _loadWeightData(); // スタンプデータは_loadWeightDataで一緒に取得するため_loadStampData()は削除
+    _loadUserHeight(); // 身長データを読み込む
   }
 
   Future<void> _loadWeightData() async {
@@ -39,6 +41,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  Future<void> _loadUserHeight() async {
+    final dbHelper = DatabaseHelper();
+    final userData = await dbHelper.getUserData();
+    if (userData != null) {
+      setState(() {
+        _userHeight = userData['height'] as double;
+      });
+    }
+  }
+
+  Future<String> _getBodyFatForDate(String date) async {
+    final dbHelper = DatabaseHelper();
+    final record = await dbHelper.getDailyRecordByDate(date);
+    if (record != null && record['body_fat'] != null) {
+      return record['body_fat'].toString();
+    }
+    return '0';
+  }
+
   void _openInputScreenForDate(DateTime date) {
     Navigator.push(
       context,
@@ -46,6 +67,65 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context) => InputScreen(),
         settings: RouteSettings(arguments: date), // 日付を渡す
       ),
+    );
+  }
+
+  void _showDayDetail(DateTime date) {
+    final formattedDate = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final weight = _weightData[formattedDate];
+    
+    if (weight != null) {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return FutureBuilder<String>(
+            future: _getBodyFatForDate(formattedDate),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final bodyFat = double.tryParse(snapshot.data ?? '0') ?? 0;
+              final weightValue = double.tryParse(weight) ?? 0;
+              // BMI計算を修正: 体重(kg) / (身長(m))^2
+              final bmi = _userHeight != null 
+                ? weightValue / ((_userHeight! / 100) * (_userHeight! / 100))
+                : 0;
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${date.year}年${date.month}月${date.day}日の記録',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildDetailItem('体重', '$weight kg'),
+                        _buildDetailItem('体脂肪率', '$bodyFat %'),
+                        _buildDetailItem('BMI', bmi.toStringAsFixed(1)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(value, style: const TextStyle(fontSize: 24)),
+      ],
     );
   }
 
@@ -72,6 +152,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _selectedDay = selectedDay;
                     _focusedDay = focusedDay;
                   });
+                  _showDayDetail(selectedDay); // 日付がタップされた時に詳細を表示
                 },
                 onDayLongPressed: (selectedDay, focusedDay) {
                   _openInputScreenForDate(selectedDay); // 長押しで記録画面を開く

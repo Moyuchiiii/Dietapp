@@ -126,6 +126,12 @@ class DatabaseHelper {
     return recordId;
   }
 
+  Future<Map<String, dynamic>?> getUserData() async {
+    final db = await database;
+    final results = await db.query('user_data');
+    return results.isNotEmpty ? results.first : null;
+  }
+
   Future<Map<String, dynamic>?> getDailyRecordByDate(String date) async {
     final db = await database;
     final result = await db.rawQuery('''
