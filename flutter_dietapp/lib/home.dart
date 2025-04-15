@@ -52,9 +52,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white, // 背景色を白に設定
-        selectedItemColor: Colors.black, // 選択されたアイテムの文字色を黒に設定
-        unselectedItemColor: Colors.black54, // 未選択アイテムの文字色を薄い黒に設定
+        type: BottomNavigationBarType.fixed, // 固定型に設定
+        backgroundColor: const Color(0xFFE4C1B5), // 背景カラー: #E4C1B5
+        selectedItemColor: const Color(0xFF544C40), // 選択時テキストカラー: #544C40
+        unselectedItemColor: const Color(0xFF544C40), // 非選択時テキストカラー: #544C40
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold), // 選択時ラベルを強調
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
+        selectedIconTheme: const IconThemeData(size: 28), // 選択時アイコンを大きく
+        unselectedIconTheme: const IconThemeData(size: 24),
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         items: const [
