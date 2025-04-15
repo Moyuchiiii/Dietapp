@@ -1,6 +1,9 @@
+// 日々の記録の変更履歴（ログ）を一覧表示・削除できる画面のウィジェット。
+
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
 
+// データベースのログ一覧を表示する画面
 class DataListScreen extends StatefulWidget {
   const DataListScreen({super.key});
 
@@ -9,20 +12,23 @@ class DataListScreen extends StatefulWidget {
 }
 
 class _DataListScreenState extends State<DataListScreen> {
+  // ログデータを格納するリスト
   List<Map<String, dynamic>> _logs = [];
 
   @override
   void initState() {
     super.initState();
+    // 画面初期化時にログを読み込む
     _loadLogs();
   }
 
+  // データベースからログを取得して_stateにセット
   Future<void> _loadLogs() async {
     final dbHelper = DatabaseHelper();
     final db = await dbHelper.database;
     final result = await db.query(
       'daily_records_log',
-      orderBy: 'updated_at DESC', // 更新日時の降順に並び替え
+      orderBy: 'updated_at DESC',
     );
     setState(() {
       _logs = result;
@@ -31,19 +37,19 @@ class _DataListScreenState extends State<DataListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffoldで画面全体を構成
     return Scaffold(
       appBar: AppBar(
         title: const Text('ログ'),
         actions: [
+          // ログ全削除ボタン
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () async {
               final dbHelper = DatabaseHelper();
               final db = await dbHelper.database;
-
-              // 確認ダイアログを表示
+              // 削除確認ダイアログを表示
               final confirm = await showDialog<bool>(
-                // ignore: use_build_context_synchronously
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('確認'),
@@ -62,33 +68,24 @@ class _DataListScreenState extends State<DataListScreen> {
               );
 
               if (confirm == true) {
-                // ログを削除
+                // ログテーブルを全削除
                 await db.delete('daily_records_log');
-
                 if (!mounted) return;
-
-                // ログリストをクリアして画面を更新
                 setState(() {
                   _logs.clear();
                 });
-
                 if (!mounted) return;
-
-                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('すべてのログが削除されました')),
                 );
-
                 if (!mounted) return;
-
-                // オプション画面に戻る
-                // ignore: use_build_context_synchronously
                 Navigator.pop(context);
               }
             },
           ),
         ],
       ),
+      // ログ一覧をListViewで表示
       body: ListView.builder(
         itemCount: _logs.length,
         itemBuilder: (context, index) {

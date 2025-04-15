@@ -1,7 +1,10 @@
-import 'package:flutter/material.dart';
-import 'database_helper.dart'; // データベースヘルパーをインポート
-import 'home.dart'; // ホーム画面をインポート
+// ユーザーの基本情報（ユーザー名・身長・目標体重）を設定する初期設定画面のウィジェット。
 
+import 'package:flutter/material.dart';
+import 'database_helper.dart';
+import 'home.dart';
+
+// 初期設定画面（ユーザー名・身長・目標体重の入力）
 class InitialSetupScreen extends StatefulWidget {
   const InitialSetupScreen({super.key});
 
@@ -17,9 +20,11 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // 追加: 既存のユーザーデータを読み込む
+    // 既存ユーザーデータがあれば読み込む
+    _loadUserData();
   }
 
+  // ユーザーデータを取得してフォームに反映
   Future<void> _loadUserData() async {
     final dbHelper = DatabaseHelper();
     final userData = await dbHelper.getUserData();
@@ -36,6 +41,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     }
   }
 
+  // 入力内容を保存
   Future<void> _saveData() async {
     final username = _usernameController.text;
     final height = double.tryParse(_heightController.text);
@@ -45,7 +51,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       try {
         final dbHelper = DatabaseHelper();
         final db = await dbHelper.database;
-        // 既存のユーザーデータを削除
         await db.delete('user_data');
         await dbHelper.insertUserData({
           'username': username,
@@ -54,13 +59,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         });
 
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('データが保存されました')),
         );
-
         if (!mounted) return;
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -81,6 +83,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 入力フォームUI
     return Scaffold(
       appBar: AppBar(
         title: const Text('基本設定'),

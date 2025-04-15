@@ -1,8 +1,11 @@
+// カレンダー形式で日々の記録やスタンプを可視化し、詳細表示や入力画面への遷移を行う画面のウィジェット。
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'database_helper.dart';
-import 'input_screen.dart'; // 記録画面をインポート
+import 'input_screen.dart';
 
+// カレンダーで日々の記録を可視化する画面
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -13,22 +16,25 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  // 日付ごとの体重データ
   Map<String, String> _weightData = {};
-  Map<String, String> _stampData = {}; // スタンプデータを保持するマップ
-  double? _userHeight; // ユーザーの身長を保持する変数を追加
+  // 日付ごとのスタンプデータ
+  Map<String, String> _stampData = {};
+  double? _userHeight;
 
   @override
   void initState() {
     super.initState();
-    _loadWeightData(); // スタンプデータは_loadWeightDataで一緒に取得するため_loadStampData()は削除
-    _loadUserHeight(); // 身長データを読み込む
+    // 体重データとユーザー身長を初期化時に取得
+    _loadWeightData();
+    _loadUserHeight();
   }
 
+  // データベースから体重・スタンプデータを取得
   Future<void> _loadWeightData() async {
     final dbHelper = DatabaseHelper();
     final db = await dbHelper.database;
     final records = await db.query('daily_records');
-
     setState(() {
       _weightData = {
         for (var record in records)
@@ -41,6 +47,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  // ユーザーの身長を取得（BMI計算用）
   Future<void> _loadUserHeight() async {
     final dbHelper = DatabaseHelper();
     final userData = await dbHelper.getUserData();
@@ -51,29 +58,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  Future<String> _getBodyFatForDate(String date) async {
-    final dbHelper = DatabaseHelper();
-    final record = await dbHelper.getDailyRecordByDate(date);
-    if (record != null && record['body_fat'] != null) {
-      return record['body_fat'].toString();
-    }
-    return '0';
-  }
-
+  // 指定日付の入力画面を開く（長押し時）
   void _openInputScreenForDate(DateTime date) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => InputScreen(),
-        settings: RouteSettings(arguments: date), // 日付を渡す
+        settings: RouteSettings(arguments: date),
       ),
     );
   }
 
+  // 日付タップ時に詳細情報を表示
   void _showDayDetail(DateTime date) {
     final formattedDate = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final weight = _weightData[formattedDate];
-    
     if (weight != null) {
       showModalBottomSheet(
         context: context,
@@ -84,17 +83,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              // レコードが存在しない場合、body_fatは'0'、memoは空文字とする
               final record = snapshot.data;
               final bodyFatStr = record != null && record['body_fat'] != null ? record['body_fat'].toString() : '0';
               final memo = record != null && record['memo'] != null ? record['memo'].toString() : '';
               final bodyFat = double.tryParse(bodyFatStr) ?? 0;
               final weightValue = double.tryParse(weight) ?? 0;
-              final bmi = _userHeight != null 
-                ? weightValue / ((_userHeight! / 100) * (_userHeight! / 100))
-                : 0;
-
+              // BMI計算
+              final bmi = _userHeight != null
+                  ? weightValue / ((_userHeight! / 100) * (_userHeight! / 100))
+                  : 0;
               return Container(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -112,7 +109,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // メモ表示を追加
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text('メモ: $memo', style: Theme.of(context).textTheme.bodyLarge),
@@ -127,6 +123,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  // 詳細表示用のウィジェット
   Widget _buildDetailItem(String label, String value) {
     return Column(
       children: [
@@ -139,6 +136,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // TableCalendarでカレンダーUIを構築
     return Scaffold(
       appBar: AppBar(
         title: const Text('カレンダー画面'),
@@ -160,10 +158,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     _selectedDay = selectedDay;
                     _focusedDay = focusedDay;
                   });
-                  _showDayDetail(selectedDay); // 日付がタップされた時に詳細を表示
+                  // 日付タップ時に詳細表示
+                  _showDayDetail(selectedDay);
                 },
                 onDayLongPressed: (selectedDay, focusedDay) {
-                  _openInputScreenForDate(selectedDay); // 長押しで記録画面を開く
+                  // 長押しで入力画面へ
+                  _openInputScreenForDate(selectedDay);
                 },
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
@@ -198,12 +198,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   defaultTextStyle:
                       const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
+                // 日付セルのカスタマイズ
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
                     final formattedDate =
                         '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                     final weight = _weightData[formattedDate];
-                    final stamp = _stampData[formattedDate]; // スタンプデータを取得
+                    final stamp = _stampData[formattedDate];
                     return Container(
                       alignment: Alignment.topCenter,
                       padding: const EdgeInsets.all(4.0),
@@ -214,7 +215,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Text(day.day.toString(), style: const TextStyle(fontSize: 16)),
-                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
+                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)),
                           if (weight != null)
                             Text(
                               '$weight kg',
@@ -228,7 +229,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final formattedDate =
                         '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                     final weight = _weightData[formattedDate];
-                    final stamp = _stampData[formattedDate]; // スタンプデータを取得
+                    final stamp = _stampData[formattedDate];
                     return Container(
                       alignment: Alignment.topCenter,
                       padding: const EdgeInsets.all(4.0),
@@ -245,7 +246,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
+                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)),
                           if (weight != null)
                             Text(
                               '$weight kg',
@@ -259,7 +260,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     final formattedDate =
                         '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
                     final weight = _weightData[formattedDate];
-                    final stamp = _stampData[formattedDate]; // スタンプデータを取得
+                    final stamp = _stampData[formattedDate];
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       alignment: Alignment.topCenter,
@@ -279,7 +280,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               color: Colors.deepPurple,
                             ),
                           ),
-                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)), // スタンプを表示
+                          if (stamp != null) Text(stamp, style: const TextStyle(fontSize: 16)),
                           if (weight != null)
                             Text(
                               '$weight kg',

@@ -1,8 +1,11 @@
+// アプリのエントリーポイント。テーマ設定や初期画面の分岐（ユーザーデータ有無でホームまたは初期設定）を行います。
+
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'firt.dart';
 import 'database_helper.dart';
 
+// アプリのエントリーポイント
 void main() {
   runApp(const MyApp());
 }
@@ -12,6 +15,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // アプリ全体のテーマと初期画面
     return MaterialApp(
       title: 'Diet App',
       theme: ThemeData(
@@ -63,18 +67,20 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    // 初期表示画面を決定
     _initialScreen = _determineInitialScreen();
   }
 
+  // ユーザーデータ有無で初期画面を分岐
   Future<Widget> _determineInitialScreen() async {
     final dbHelper = DatabaseHelper();
     final hasUserData = await dbHelper.hasUserData();
-    
     return hasUserData ? const HomeScreen() : const InitialSetupScreen();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 非同期で初期画面を構築
     return FutureBuilder<Widget>(
       future: _initialScreen,
       builder: (context, snapshot) {
