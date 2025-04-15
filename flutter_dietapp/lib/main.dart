@@ -15,7 +15,34 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Diet App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primaryColor: const Color(0xFFD5BDAE), // アクセントカラー
+        scaffoldBackgroundColor: const Color(0xFFEBE9EA), // ベースカラー
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFD5BDAE),
+          titleTextStyle: TextStyle(
+            color: Color(0xFF34251F), // テキストカラー
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+          iconTheme: IconThemeData(
+            color: Color(0xFF34251F),
+          ),
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFF34251F)),
+          bodyMedium: TextStyle(color: Color(0xFF34251F)),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFFEBE9EA),
+          selectedItemColor: Color(0xFF34251F),
+          unselectedItemColor: Color(0xFF34251F),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFD5BDAE),
+            foregroundColor: const Color(0xFF34251F),
+          ),
+        ),
         useMaterial3: true,
       ),
       home: const MyHomePage(),
