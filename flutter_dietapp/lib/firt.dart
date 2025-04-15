@@ -15,6 +15,31 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final TextEditingController _currentWeightController = TextEditingController();
   final TextEditingController _targetWeightController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); // 追加: 既存のユーザーデータを読み込む
+  }
+
+  Future<void> _loadUserData() async {
+    final dbHelper = DatabaseHelper();
+    final userData = await dbHelper.getUserData();
+    if (userData != null) {
+      setState(() {
+        _usernameController.text = userData['username'] ?? '';
+        _heightController.text = userData['height'] != null
+            ? userData['height'].toString()
+            : '';
+        _currentWeightController.text = userData['current_weight'] != null
+            ? userData['current_weight'].toString()
+            : '';
+        _targetWeightController.text = userData['target_weight'] != null
+            ? userData['target_weight'].toString()
+            : '';
+      });
+    }
+  }
+
   Future<void> _saveData() async {
     final username = _usernameController.text;
     final height = double.tryParse(_heightController.text);
@@ -23,8 +48,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
     if (username.isNotEmpty && height != null && currentWeight != null && targetWeight != null) {
       try {
-        // データをローカルデータベースに保存
         final dbHelper = DatabaseHelper();
+        final db = await dbHelper.database;
+        // 既存のユーザーデータを削除
+        await db.delete('user_data');
         await dbHelper.insertUserData({
           'username': username,
           'height': height,
@@ -32,29 +59,26 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           'target_weight': targetWeight,
         });
 
-        if (!mounted) return; // mounted チェックを追加
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('データが保存されました')),
         );
 
-        if (!mounted) return; // mounted チェックを追加
+        if (!mounted) return;
 
-        // ホーム画面に遷移
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } catch (e) {
-        if (!mounted) return; // mounted チェックを追加
-
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('エラーが発生しました: $e')),
         );
       }
     } else {
-      if (!mounted) return; // mounted チェックを追加
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('すべてのフィールドを正しく入力してください')),
       );

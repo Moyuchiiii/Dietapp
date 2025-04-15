@@ -64,30 +64,36 @@ class OptionsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('オプション画面'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DataListScreen()),
-                );
-              },
-              child: const Text('ログを確認する'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _deleteAllData(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('すべてのデータを削除'),
-            ),
-          ],
-        ),
+      body: ListView(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('ログを確認する'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DataListScreen()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('すべてのデータを削除', style: TextStyle(color: Colors.red)),
+            onTap: () => _deleteAllData(context),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings_applications),
+            title: const Text('初期設定の変更'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const InitialSetupScreen()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
