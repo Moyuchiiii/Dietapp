@@ -85,7 +85,7 @@ class OptionsScreen extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.settings_applications),
-            title: const Text('初期設定の変更'),
+            title: const Text('基本設定の変更'),
             onTap: () {
               Navigator.push(
                 context,

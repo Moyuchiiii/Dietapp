@@ -78,16 +78,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
       showModalBottomSheet(
         context: context,
         builder: (context) {
-          return FutureBuilder<String>(
-            future: _getBodyFatForDate(formattedDate),
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: DatabaseHelper().getDailyRecordByDate(formattedDate),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final bodyFat = double.tryParse(snapshot.data ?? '0') ?? 0;
+              // レコードが存在しない場合、body_fatは'0'、memoは空文字とする
+              final record = snapshot.data;
+              final bodyFatStr = record != null && record['body_fat'] != null ? record['body_fat'].toString() : '0';
+              final memo = record != null && record['memo'] != null ? record['memo'].toString() : '';
+              final bodyFat = double.tryParse(bodyFatStr) ?? 0;
               final weightValue = double.tryParse(weight) ?? 0;
-              // BMI計算を修正: 体重(kg) / (身長(m))^2
               final bmi = _userHeight != null 
                 ? weightValue / ((_userHeight! / 100) * (_userHeight! / 100))
                 : 0;
@@ -109,6 +112,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
+                    // メモ表示を追加
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('メモ: $memo', style: Theme.of(context).textTheme.bodyLarge),
+                    ),
                   ],
                 ),
               );
