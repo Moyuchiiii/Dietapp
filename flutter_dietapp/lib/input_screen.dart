@@ -1,7 +1,11 @@
+// 日々の体重・体脂肪率・メモ・スタンプを入力・保存する画面のウィジェット。
+// 日付ごとに記録の新規作成・編集が可能です。
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // 日付フォーマット用のパッケージをインポート
+import 'package:intl/intl.dart';
 import 'database_helper.dart';
 
+// 日々の記録入力画面
 class InputScreen extends StatefulWidget {
   const InputScreen({super.key});
 
@@ -14,31 +18,34 @@ class _InputScreenState extends State<InputScreen> {
   final TextEditingController _bodyFatController = TextEditingController();
   final TextEditingController _memoController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  int? _recordId; // 既存データのIDを保持
+  int? _recordId;
   final List<String> _stamps = ['😊', '😢', '🍚', '🍺', '🚻', '🏃', '⭐'];
-  String? _selectedStamp; // 選択されたスタンプ
+  String? _selectedStamp;
 
   @override
   void initState() {
     super.initState();
+    // 初期表示時に当日の記録を読み込む
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadRecordForDate(_selectedDate); // 初期表示時にデータを読み込む
+      _loadRecordForDate(_selectedDate);
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadRecordForDate(_selectedDate); // 再表示時にデータを読み込む
+    _loadRecordForDate(_selectedDate);
   }
 
+  // 日付を変更
   void _changeDate(int days) {
     setState(() {
       _selectedDate = _selectedDate.add(Duration(days: days));
     });
-    _loadRecordForDate(_selectedDate); // 日付変更時にデータを読み込む
+    _loadRecordForDate(_selectedDate);
   }
 
+  // 日付選択ダイアログ
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -50,35 +57,37 @@ class _InputScreenState extends State<InputScreen> {
       setState(() {
         _selectedDate = picked;
       });
-      _loadRecordForDate(_selectedDate); // 選択した日付のデータを読み込む
+      _loadRecordForDate(_selectedDate);
     }
   }
 
+  // 指定日の記録を読み込む
   Future<void> _loadRecordForDate(DateTime date) async {
     final dbHelper = DatabaseHelper();
-    final formattedDate = DateFormat('yyyy-MM-dd').format(date); // 日付をフォーマット
-    final records = await dbHelper.getDailyRecordByDate(formattedDate); // フォーマット済みの日付を使用
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final records = await dbHelper.getDailyRecordByDate(formattedDate);
     if (records != null) {
       if (!mounted) return;
       setState(() {
-        _recordId = records['id']; // 記録IDを保持
-        _weightController.text = records['weight'].toString(); // 体重を入力
-        _bodyFatController.text = records['body_fat'].toString(); // 体脂肪率を入力
-        _memoController.text = records['memo'] ?? ''; // メモを入力
-        _selectedStamp = records['stamp']; // スタンプを入力
+        _recordId = records['id'];
+        _weightController.text = records['weight'].toString();
+        _bodyFatController.text = records['body_fat'].toString();
+        _memoController.text = records['memo'] ?? '';
+        _selectedStamp = records['stamp'];
       });
     } else {
       if (!mounted) return;
       setState(() {
-        _recordId = null; // 記録IDをリセット
-        _weightController.clear(); // 体重フィールドをクリア
-        _bodyFatController.clear(); // 体脂肪率フィールドをクリア
-        _memoController.clear(); // メモフィールドをクリア
-        _selectedStamp = null; // スタンプをリセット
+        _recordId = null;
+        _weightController.clear();
+        _bodyFatController.clear();
+        _memoController.clear();
+        _selectedStamp = null;
       });
     }
   }
 
+  // 記録を保存
   Future<void> _saveRecord() async {
     final weight = double.tryParse(_weightController.text);
     final bodyFat = double.tryParse(_bodyFatController.text);
@@ -87,41 +96,34 @@ class _InputScreenState extends State<InputScreen> {
     if (weight != null && bodyFat != null) {
       try {
         final dbHelper = DatabaseHelper();
-        final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate); // 日付をフォーマット
+        final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
         final data = {
           'weight': weight,
           'body_fat': bodyFat,
           'memo': memo,
-          'date': formattedDate, // フォーマット済みの日付を使用
-          'stamp': _selectedStamp, // スタンプを保存
+          'date': formattedDate,
+          'stamp': _selectedStamp,
         };
 
         if (_recordId == null) {
-          // 新規挿入
           await dbHelper.insertDailyRecord(data);
         } else {
-          // 更新
           await dbHelper.updateDailyRecord(_recordId!, data);
-          // logDailyRecordUpdate は updateDailyRecord 内で呼び出されるため、ここで再度呼び出さない
         }
 
-        if (!mounted) return; // mounted チェックを追加
-
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('記録が保存されました')),
         );
-
         _loadRecordForDate(_selectedDate);
       } catch (e) {
-        if (!mounted) return; // mounted チェックを追加
-
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('エラーが発生しました: $e')),
         );
       }
     } else {
-      if (!mounted) return; // mounted チェックを追加
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('体重と体脂肪率を正しく入力してください')),
       );
@@ -130,6 +132,7 @@ class _InputScreenState extends State<InputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 入力フォームUI
     return Scaffold(
       appBar: AppBar(
         title: const Text('記録入力'),
@@ -148,7 +151,7 @@ class _InputScreenState extends State<InputScreen> {
                     icon: const Icon(Icons.chevron_left),
                   ),
                   GestureDetector(
-                    onTap: _selectDate, // タップでカレンダーを開く
+                    onTap: _selectDate,
                     child: Text(
                       '${_selectedDate.year} ${_selectedDate.month}.${_selectedDate.day} (${['月', '火', '水', '木', '金', '土', '日'][_selectedDate.weekday - 1]})',
                       style: const TextStyle(fontSize: 16),

@@ -1,8 +1,12 @@
+// SQLiteデータベースの初期化・テーブル作成・CRUD操作などをまとめたヘルパークラス。
+// ユーザーデータや日々の記録、ログの管理を行います。
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'dart:developer'; // ログ記録用のパッケージをインポート
-import 'package:intl/intl.dart'; // 日付フォーマット用のパッケージをインポート
+import 'dart:developer';
+import 'package:intl/intl.dart';
 
+// データベース操作のヘルパークラス
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
@@ -11,19 +15,21 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
+  // データベースインスタンス取得
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
+  // データベース初期化・テーブル作成
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'dietapp.db');
 
     return await openDatabase(
       path,
-      version: 6, // バージョンを5から6に更新
+      version: 6,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE user_data (
@@ -65,6 +71,7 @@ class DatabaseHelper {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        // バージョンアップ時のテーブル追加・カラム追加
         if (oldVersion < 2) {
           await db.execute('''
             CREATE TABLE IF NOT EXISTS daily_records (
@@ -114,24 +121,28 @@ class DatabaseHelper {
     );
   }
 
+  // ユーザーデータ挿入
   Future<int> insertUserData(Map<String, dynamic> data) async {
     final db = await database;
     return await db.insert('user_data', data);
   }
 
+  // 日々の記録挿入
   Future<int> insertDailyRecord(Map<String, dynamic> data) async {
     final db = await database;
     final recordId = await db.insert('daily_records', data);
-    await logDailyRecordUpdate(recordId, data); // 新しい記録をログに記録
+    await logDailyRecordUpdate(recordId, data);
     return recordId;
   }
 
+  // ユーザーデータ取得
   Future<Map<String, dynamic>?> getUserData() async {
     final db = await database;
     final results = await db.query('user_data');
     return results.isNotEmpty ? results.first : null;
   }
 
+  // 指定日付の最新記録を取得
   Future<Map<String, dynamic>?> getDailyRecordByDate(String date) async {
     final db = await database;
     final result = await db.rawQuery('''
@@ -147,6 +158,7 @@ class DatabaseHelper {
     return result.isNotEmpty ? result.first : null;
   }
 
+  // 日々の記録更新
   Future<int> updateDailyRecord(int id, Map<String, dynamic> data) async {
     final db = await database;
     final result = await db.update(
@@ -155,10 +167,11 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-    await logDailyRecordUpdate(id, data); // ログを1回だけ記録
+    await logDailyRecordUpdate(id, data);
     return result;
   }
 
+  // 記録の更新ログを保存
   Future<int> logDailyRecordUpdate(int recordId, Map<String, dynamic> data) async {
     final db = await database;
     final now = DateTime.now();
@@ -177,18 +190,17 @@ class DatabaseHelper {
       'body_fat': data['body_fat'],
       'memo': data['memo'],
       'date': data['date'],
-      'stamp': data['stamp'], // スタンプ情報もログに追加
+      'stamp': data['stamp'],
       'updated_at': formattedCurrentTime,
     };
 
-    log(logMessage); // print の代わりに log を使用
+    log(logMessage);
     return await db.insert('daily_records_log', logData);
   }
 
+  // グラフ用データ取得（日付ごと最新のみ）
   Future<List<Map<String, dynamic>>> getGraphData() async {
     final db = await database;
-    
-    // 各日付の最新のレコードのみを取得する（サブクエリを使用）
     final results = await db.rawQuery('''
       SELECT dr.*
       FROM daily_records dr
@@ -201,11 +213,9 @@ class DatabaseHelper {
       ORDER BY date ASC
     ''');
 
-    // 日付形式の標準化
     return results.map((record) {
       final dateStr = record['date'] as String;
       try {
-        // 日付形式を検証し、必要に応じて変換
         final date = DateTime.parse(dateStr.replaceAll('/', '-'));
         return {
           ...record,
@@ -217,6 +227,7 @@ class DatabaseHelper {
     }).toList();
   }
 
+  // ユーザーデータ有無判定
   Future<bool> hasUserData() async {
     final db = await database;
     final result = await db.query('user_data');

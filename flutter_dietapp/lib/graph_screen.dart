@@ -1,9 +1,13 @@
+// 体重・体脂肪率の推移をグラフで表示する画面のウィジェット。
+// データベースから取得した記録を折れ線グラフで可視化します。
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'database_helper.dart';
 import 'dart:math';
 
+// グラフ画面（体重・体脂肪率の推移を表示）
 class GraphScreen extends StatefulWidget {
   const GraphScreen({super.key});
 
@@ -21,18 +25,19 @@ class _GraphScreenState extends State<GraphScreen> {
   double maxX = 0;
   bool showWeight = true;
   bool showBodyFat = true;
-  double? targetWeight; // 追加: 目標体重
+  double? targetWeight;
 
   @override
   void initState() {
     super.initState();
+    // グラフ用データを読み込む
     _loadGraphData();
   }
 
+  // データベースからグラフ用データを取得
   Future<void> _loadGraphData() async {
     final dbHelper = DatabaseHelper();
     final data = await dbHelper.getGraphData();
-    // DBからユーザーデータを取得し、目標体重を抽出
     final userData = await dbHelper.getUserData();
     final target = userData != null ? userData['target_weight'] as double? : null;
 
@@ -46,22 +51,19 @@ class _GraphScreenState extends State<GraphScreen> {
       return;
     }
 
-    // データを日付でグループ化し、各日付の最新のデータのみを使用
     final dateMap = <String, Map<String, dynamic>>{};
     for (var record in data) {
       final date = record['date'] as String;
-      if (!dateMap.containsKey(date) || 
+      if (!dateMap.containsKey(date) ||
           (record['id'] as int) > (dateMap[date]!['id'] as int)) {
         dateMap[date] = record;
       }
     }
 
-    // 最も古い日付と最も新しい日付を取得
     final sortedDates = dateMap.keys.toList()..sort();
     final firstDate = DateFormat('yyyy/MM/dd').parse(sortedDates.first);
     final lastDate = DateFormat('yyyy/MM/dd').parse(sortedDates.last);
 
-    // 日付の範囲内のすべての日付を生成
     final allDates = List.generate(
       lastDate.difference(firstDate).inDays + 1,
       (index) => DateFormat('yyyy/MM/dd').format(
@@ -74,21 +76,17 @@ class _GraphScreenState extends State<GraphScreen> {
     double minValue = double.infinity;
     double maxValue = double.negativeInfinity;
 
-    // すべての日付に対してデータを処理
     for (int i = 0; i < allDates.length; i++) {
       final date = allDates[i];
       final record = dateMap[date];
-      
       if (record != null) {
         final weight = record['weight'] as double?;
         final bodyFat = record['body_fat'] as double?;
-
         if (weight != null) {
           weightData.add(FlSpot(i.toDouble(), weight));
           minValue = min(minValue, weight);
           maxValue = max(maxValue, weight);
         }
-
         if (bodyFat != null) {
           bodyFatData.add(FlSpot(i.toDouble(), bodyFat));
           minValue = min(minValue, bodyFat);
@@ -97,7 +95,6 @@ class _GraphScreenState extends State<GraphScreen> {
       }
     }
 
-    // 目標体重をグラフ範囲に含める
     if (target != null) {
       minValue = min(minValue, target);
       maxValue = max(maxValue, target);
@@ -115,6 +112,7 @@ class _GraphScreenState extends State<GraphScreen> {
     });
   }
 
+  // X軸の日付ラベルを取得
   String _getDateLabel(int index) {
     if (index >= 0 && index < dates.length) {
       try {
@@ -130,9 +128,9 @@ class _GraphScreenState extends State<GraphScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 毎日表示するためにintervalを1.0に固定
     const interval = 1.0;
 
+    // グラフUI
     return Scaffold(
       appBar: AppBar(
         title: const Text('グラフ画面'),
@@ -166,7 +164,6 @@ class _GraphScreenState extends State<GraphScreen> {
               ],
             ),
           ),
-          // 追加: targetWeight の表示（DBから取得した数値）
           if (targetWeight != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -186,7 +183,7 @@ class _GraphScreenState extends State<GraphScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                  width: max(MediaQuery.of(context).size.width, dates.length * 65.0), // 1日あたりのスペースを増やす
+                  width: max(MediaQuery.of(context).size.width, dates.length * 65.0),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: LineChart(
@@ -263,7 +260,7 @@ class _GraphScreenState extends State<GraphScreen> {
                           ),
                           bottomTitles: AxisTitles(
                             axisNameWidget: const Padding(
-                              padding: EdgeInsets.only(top: 45),  // パディングを増やす
+                              padding: EdgeInsets.only(top: 45),
                               child: Text(
                                 '日付',
                                 style: TextStyle(
@@ -275,7 +272,7 @@ class _GraphScreenState extends State<GraphScreen> {
                             sideTitles: SideTitles(
                               showTitles: true,
                               interval: interval,
-                              reservedSize: 90,  // 日付ラベルのスペースをさらに広げる
+                              reservedSize: 90,
                               getTitlesWidget: (value, meta) {
                                 final index = value.toInt();
                                 if (index >= 0 && index < dates.length) {
