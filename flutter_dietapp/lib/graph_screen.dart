@@ -21,6 +21,7 @@ class _GraphScreenState extends State<GraphScreen> {
   double maxX = 0;
   bool showWeight = true;
   bool showBodyFat = true;
+  double? targetWeight; // 追加: 目標体重
 
   @override
   void initState() {
@@ -31,12 +32,16 @@ class _GraphScreenState extends State<GraphScreen> {
   Future<void> _loadGraphData() async {
     final dbHelper = DatabaseHelper();
     final data = await dbHelper.getGraphData();
+    // DBからユーザーデータを取得し、目標体重を抽出
+    final userData = await dbHelper.getUserData();
+    final target = userData != null ? userData['target_weight'] as double? : null;
 
     if (data.isEmpty) {
       setState(() {
         weightSpots = [];
         bodyFatSpots = [];
         dates = [];
+        targetWeight = target;
       });
       return;
     }
@@ -80,16 +85,22 @@ class _GraphScreenState extends State<GraphScreen> {
 
         if (weight != null) {
           weightData.add(FlSpot(i.toDouble(), weight));
-          minValue = minValue < weight ? minValue : weight;
-          maxValue = maxValue > weight ? maxValue : weight;
+          minValue = min(minValue, weight);
+          maxValue = max(maxValue, weight);
         }
 
         if (bodyFat != null) {
           bodyFatData.add(FlSpot(i.toDouble(), bodyFat));
-          minValue = minValue < bodyFat ? minValue : bodyFat;
-          maxValue = maxValue > bodyFat ? maxValue : bodyFat;
+          minValue = min(minValue, bodyFat);
+          maxValue = max(maxValue, bodyFat);
         }
       }
+    }
+
+    // 目標体重をグラフ範囲に含める
+    if (target != null) {
+      minValue = min(minValue, target);
+      maxValue = max(maxValue, target);
     }
 
     setState(() {
@@ -100,6 +111,7 @@ class _GraphScreenState extends State<GraphScreen> {
       maxY = maxValue;
       minX = 0;
       maxX = (dates.length - 1).toDouble();
+      targetWeight = target;
     });
   }
 
@@ -154,6 +166,15 @@ class _GraphScreenState extends State<GraphScreen> {
               ],
             ),
           ),
+          // 追加: targetWeight の表示（DBから取得した数値）
+          if (targetWeight != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                '目標体重: ${targetWeight!.toStringAsFixed(1)} kg',
+                style: const TextStyle(fontSize: 14, color: Colors.green),
+              ),
+            ),
           if (dates.isEmpty)
             const Expanded(
               child: Center(
@@ -204,6 +225,15 @@ class _GraphScreenState extends State<GraphScreen> {
                                   ),
                               ),
                               barWidth: 2,
+                            ),
+                          if (targetWeight != null)
+                            LineChartBarData(
+                              spots: [FlSpot(minX, targetWeight!), FlSpot(maxX, targetWeight!)],
+                              isCurved: false,
+                              color: Colors.grey.withOpacity(0.5),
+                              dotData: FlDotData(show: false),
+                              dashArray: [5, 5],
+                              barWidth: 1,
                             ),
                         ],
                         minX: minX,
